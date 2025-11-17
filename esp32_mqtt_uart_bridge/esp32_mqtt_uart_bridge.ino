@@ -11,8 +11,8 @@
 
 // --- Configuration ---
 // !! UPDATE THESE WITH YOUR CREDENTIALS !!
-const char* WIFI_SSID = "TP-Link_7E13_5G";
-const char* WIFI_PASSWORD = "05894895";
+const char* WIFI_SSID = "YOUR-WIFI-SSID";
+const char* WIFI_PASSWORD = "YOUR-WIFI-PASSWD";
 
 const char* MQTT_BROKER = "broker.hivemq.com";
 const int MQTT_PORT = 1883;
