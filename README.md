@@ -1,0 +1,207 @@
+Epicure Robotics - MQTT-to-Hardware Control System
+
+This repository contains the complete code base for the Epicure Robotics Robotic Software Engineer task. It implements a communication system to send commands from a PC to an STM32 microcontroller (controlling a stepper motor and LED) via an ESP32 bridge.
+
+1. System Architecture
+
+The system operates on a publish-subscribe model, passing commands through the following flow:
+
+Python (User Input) → MQTT Broker → ESP32 (Subscriber) → UART → STM32 (Hardware Control)
+
+Message Format
+
+The system uses a simple, colon-delimited string format for commands:
+
+led:on: Turns the LED on.
+
+led:off: Turns the LED off.
+
+motor:<steps>:<direction>: Moves the motor.
+
+<steps>: Number of steps (e.g., 100).
+
+<direction>: 0 or 1 (e.g., 1 for forward, 0 for reverse).
+
+Example: motor:200:1
+
+2. Repository Structure
+
+This repository is organized into three main components and this guide:
+
+publisher.py: The Python script that runs on the PC, takes user input, and publishes commands to the MQTT broker.
+
+esp32_mqtt_uart_bridge/esp32_mqtt_uart_bridge.ino: The ESP32 firmware. It connects to WiFi, subscribes to the MQTT topic, and forwards all received commands to the STM32 via UART.
+
+stm32_controller/stm32_controller.ino: The STM32 firmware. It listens for commands on its UART port, parses them, and executes hardware actions (toggling the LED or driving the stepper motor).
+
+README.md: This setup and documentation file.
+
+3. How to Set Up and Run
+
+Here are the instructions to set up and test each component of the system.
+
+Part A: Python Publisher (publisher.py)
+
+This script runs on your computer, takes user input, and publishes it to the MQTT broker.
+
+Dependencies
+
+You only need the paho-mqtt library.
+
+pip install paho-mqtt
+
+
+Setup
+
+The script is pre-configured to use a public test broker: broker.hivemq.com. No changes are needed for testing.
+
+If you have a local broker (like Mosquitto), change the MQTT_BROKER variable.
+
+How to Run
+
+Open your terminal or command prompt.
+
+Run the script:
+
+python publisher.py
+
+
+The script will connect and prompt you for commands. Type led:on and press Enter.
+
+Part B: ESP32 Bridge (esp32_mqtt_uart_bridge.ino)
+
+This firmware runs on the ESP32, subscribing to MQTT and forwarding commands to the STM32 via UART.
+
+IDE & Libraries
+
+IDE: Arduino IDE
+
+Board: Add ESP32 boards to your Arduino IDE.
+
+Go to File > Preferences.
+
+Add https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json to "Additional Board Manager URLs".
+
+Go to Tools > Board > Boards Manager....
+
+Search for "esp32" and install the package by Espressif Systems.
+
+Library: PubSubClient
+
+Go to Tools > Manage Libraries....
+
+Search for "PubSubClient" by Nick O'Leary and install it.
+
+Setup
+
+Open esp32_mqtt_uart_bridge/esp32_mqtt_uart_bridge.ino in the Arduino IDE.
+
+!! IMPORTANT !! Update the following lines with your WiFi credentials:
+
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+
+Select your board (Tools > Board > ESP32 Arduino > ESP32 Dev Module).
+
+Select the correct COM port and click Upload.
+
+Part C: STM32 Controller (stm32_controller.ino)
+
+This firmware runs on the STM32F407VET6, listening for UART commands and controlling the hardware.
+
+IDE & Board Setup
+
+IDE: Arduino IDE
+
+Board: Add STM32 boards to your Arduino IDE.
+
+Go to File > Preferences.
+
+Add https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stm32_index.json to "Additional Board Manager URLs".
+
+Go to Tools > Board > Boards Manager....
+
+Search for "STM32 MCU based boards" and install it.
+
+Board Selection:
+
+Go to Tools > Board > STM32 Boards.
+
+Select STM32F4 series.
+
+For Board part number, select STM32F407VE(T).
+
+Set Upload method to STM32CubeProgrammer (SWD).
+
+Setup
+
+Open stm32_controller/stm32_controller.ino in the Arduino IDE.
+
+Verify Pin Definitions: The code uses PC13 (LED), PA0 (DIR), and PA1 (STEP). If the test PCB uses different pins, these constants must be updated.
+
+Connect your ST-Link programmer and click Upload.
+
+4. Hardware & Testing
+
+Hardware Connections
+
+This is the physical wiring required between the two microcontrollers.
+
+ESP32 (wroom32d)
+
+STM32 (STM32F407VET6)
+
+Purpose
+
+GND
+
+GND
+
+Common Ground (CRITICAL)
+
+GPIO 17 (TX2)
+
+PA10 (RX1)
+
+ESP32 Transmit -> STM32 Receive
+
+GPIO 16 (RX2)
+
+PA9 (TX1)
+
+ESP32 Receive <- STM32 Transmit
+
+Note: We use Serial2 on the ESP32 and Serial1 on the STM32. The pins PA10/PA9 correspond to Serial1 on the STM32F407.
+
+End-to-End Test Flow
+
+Hardware: Wire the ESP32 and STM32 together as shown.
+
+Firmware: Upload the firmware to both boards.
+
+Run:
+
+Open Serial Monitors for both boards (baud rate 115200).
+
+Power on the microcontrollers.
+
+The ESP32 monitor should show a connection to WiFi and MQTT.
+
+The STM32 monitor should show "Waiting for commands...".
+
+Execute:
+
+Run the python publisher.py script on your computer.
+
+Type led:on in the Python console and press Enter.
+
+Observe:
+
+Python: Will show "Published: 'led:on'".
+
+ESP32 Monitor: Will show "Message arrived... Forwarded to STM32".
+
+STM32 Monitor: Will show "Received command: 'led:on'... Action: Turning LED ON".
+
+Hardware: The LED on the STM32 board will turn on.
